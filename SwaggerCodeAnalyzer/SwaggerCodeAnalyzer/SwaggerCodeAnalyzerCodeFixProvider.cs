@@ -18,7 +18,10 @@ namespace SwaggerCodeAnalyzer
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(SwaggerCodeAnalyzerCodeFixProvider)), Shared]
     public class SwaggerCodeAnalyzerCodeFixProvider : CodeFixProvider
     {
-        private const string title = "Add SwaggerOperation Attribute";
+        private const string title = "Add SwaggerOperation attribute";
+        private const string swaggerOperationAttributeName = "SwaggerOperation";
+        private const string controllerSufix = "Controller";
+        private const string defaultControllerName = "ControllerName_";
 
         public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
@@ -35,7 +38,6 @@ namespace SwaggerCodeAnalyzer
         {
             var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
 
-            // TODO: Replace the following code with your own analysis, generating a CodeAction for each fix to suggest
             var diagnostic = context.Diagnostics.First();
             var diagnosticSpan = diagnostic.Location.SourceSpan;
 
@@ -52,31 +54,42 @@ namespace SwaggerCodeAnalyzer
                 diagnostic);
         }
 
+        private string GetAttributeValue(MethodDeclarationSyntax methodDeclaration)
+        {
+            if (methodDeclaration.Parent is ClassDeclarationSyntax)
+            {
+                var parentClass = methodDeclaration.Parent as ClassDeclarationSyntax;
+                return @"""" + parentClass.Identifier.ValueText.Replace(controllerSufix, "") + "_" + methodDeclaration.Identifier.ValueText + @"""";
+            }
+            
+            return @"""" + defaultControllerName + methodDeclaration.Identifier.ValueText + @"""";
+        }
+
         private async Task<Solution> AddSwaggerOperationAttribute(Document document,
             MethodDeclarationSyntax methodDeclaration, CancellationToken cancellationToken)
         {
-            var root = await document.GetSyntaxRootAsync(cancellationToken);
-
-            var value = @"""" + "ControllerName_" + methodDeclaration.Identifier.ValueText + @"""";
+            var attributeValue = GetAttributeValue(methodDeclaration);
 
             var liralExpression = SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression,
-                SyntaxFactory.Token(default(SyntaxTriviaList), SyntaxKind.StringLiteralToken, value,
-                    value, default(SyntaxTriviaList)));
+                SyntaxFactory.Token(default(SyntaxTriviaList), SyntaxKind.StringLiteralToken, attributeValue,
+                    attributeValue, default(SyntaxTriviaList)));
 
             var attributeArgument = SyntaxFactory.AttributeArgument(liralExpression);
+            var attributeList = new SeparatedSyntaxList<AttributeArgumentSyntax>();
 
-            var otherList = new SeparatedSyntaxList<AttributeArgumentSyntax>();
-            otherList = otherList.Add(attributeArgument);
-            var argumentList = SyntaxFactory.AttributeArgumentList(otherList);
+            attributeList = attributeList.Add(attributeArgument);
+            var argumentList = SyntaxFactory.AttributeArgumentList(attributeList);
 
 
             var attributes = methodDeclaration.AttributeLists.Add(
                 SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList<AttributeSyntax>(
-                        SyntaxFactory.Attribute(SyntaxFactory.IdentifierName("SwaggerOperation"))
+                        SyntaxFactory.Attribute(SyntaxFactory.IdentifierName(swaggerOperationAttributeName))
                             .WithArgumentList(argumentList)
                     )
                 )
             );
+
+            var root = await document.GetSyntaxRootAsync(cancellationToken);
 
             return document.WithSyntaxRoot(
                 root.ReplaceNode(

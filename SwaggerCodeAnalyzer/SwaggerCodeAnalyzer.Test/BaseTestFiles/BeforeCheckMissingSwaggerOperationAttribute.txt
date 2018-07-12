@@ -1,0 +1,67 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ConsoleApp1
+{
+    public class Route : Attribute
+    {
+        //...
+    }
+
+    public class Swagger : Attribute
+    {
+        //...
+    }
+
+    public class SwaggerOperation: Attribute
+    {
+        public SwaggerOperation(string name) { }
+
+    }
+
+    
+    class Program
+    {
+        [Route]
+        [Swagger]
+        public void NoClassMethod(string name)
+        {
+
+        }
+        public class OutraController
+        {
+            [Route]
+            [Swagger]
+            public void Tests(string name)
+            {
+
+            }
+        }
+        public class OutraClass
+        {
+            [Route]
+            [Swagger]
+            public void Tests(string name)
+            {
+
+            }
+        }
+        
+        static void Main(string[] args)
+        {
+            int rodrigo = 10;
+
+            Console.WriteLine("Hello World!");
+            Console.ReadKey();
+
+            Console.WriteLine("rodrigo " + rodrigo.ToString());
+
+            var class1 = new Class1();
+            class1.WriteSomeThing("rodrigo "); 
+            
+        }
+    }
+}
